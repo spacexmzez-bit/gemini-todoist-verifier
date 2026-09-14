@@ -96,10 +96,12 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 0.5rem;
     }
     .task-content {
       font-size: 0.95rem;
       font-weight: 500;
+      word-break: break-word;
     }
     .task-badge {
       font-size: 0.75rem;
@@ -108,6 +110,7 @@
       background: rgba(56, 189, 248, 0.15);
       color: var(--accent);
       margin-left: 0.5rem;
+      white-space: nowrap;
     }
     .status-badge {
       display: inline-block;
@@ -119,6 +122,55 @@
     }
     .status-badge.connected { background: rgba(34, 197, 94, 0.2); color: var(--success); }
     .status-badge.missing { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      z-index: 100;
+    }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 480px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .file-drop {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      text-align: center;
+      cursor: pointer;
+      background: #0b1120;
+    }
+    .image-preview {
+      max-height: 220px;
+      object-fit: contain;
+      border-radius: 6px;
+      display: none;
+      margin: 0.5rem auto 0;
+      width: 100%;
+    }
+    .feedback-box {
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.85rem;
+      display: none;
+      line-height: 1.4;
+    }
+    .feedback-box.success { background: rgba(34, 197, 94, 0.15); border: 1px solid var(--success); color: var(--text); }
+    .feedback-box.error { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color: var(--text); }
   </style>
 </head>
 <body>
@@ -154,6 +206,25 @@
       <button class="secondary" id="clear-btn" onclick="handleClearKeys()" style="display:none;">Clear All Keys</button>
       
       <div id="status-indicator"></div>
+    </div>
+  </div>
+
+  <!-- Proof Verification Modal -->
+  <div class="modal-overlay" id="proof-modal" style="display: none;">
+    <div class="modal">
+      <h2 id="modal-task-title">Verify Task</h2>
+      <p id="modal-task-desc">Upload a photo or screenshot proving you completed this task.</p>
+
+      <div class="file-drop" onclick="document.getElementById('proof-file-input').click()">
+        <span id="file-label">📷 Tap to take a photo or select image</span>
+        <input type="file" id="proof-file-input" accept="image/*" style="display: none;" onchange="handleFileSelected(event)" />
+        <img id="image-preview" class="image-preview" alt="Proof preview" />
+      </div>
+
+      <div id="feedback-box" class="feedback-box"></div>
+
+      <button id="submit-verify-btn" onclick="submitProofToGemini()" disabled style="opacity: 0.5;">Analyze & Complete</button>
+      <button class="secondary" onclick="closeProofModal()">Cancel</button>
     </div>
   </div>
 
