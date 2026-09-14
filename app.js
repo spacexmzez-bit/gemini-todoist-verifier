@@ -63,7 +63,7 @@ window.handleClearKeys = function() {
   }
 };
 
-// Fetch focus tasks from Todoist through Cloudflare proxy
+// Fetch focus tasks directly from Todoist API
 window.fetchFocusTasks = async function() {
   const token = localStorage.getItem(TODOIST_KEY_NAME);
   if (!token) return;
@@ -72,7 +72,8 @@ window.fetchFocusTasks = async function() {
 
   try {
     const encodedLabel = encodeURIComponent(FOCUS_LABEL);
-    const response = await fetch(`/api/todoist/tasks?label=${encodedLabel}`, {
+    const response = await fetch(`https://api.todoist.com/api/v1/tasks?label=${encodedLabel}`, {
+      method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`
       }
@@ -113,7 +114,7 @@ function renderTasks(tasks) {
   });
 }
 
-// Placeholder for Phase 4 proof verification
+// Placeholder for verification modal
 window.selectTaskForVerification = function(taskId, taskContent) {
-  alert(`Selected task: "${taskContent}"\nIn Phase 4, this will open the image proof uploader.`);
+  alert(`Selected task: "${taskContent}"\nReady for proof verification!`);
 };
