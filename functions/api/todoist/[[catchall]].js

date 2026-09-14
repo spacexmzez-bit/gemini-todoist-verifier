@@ -1,1 +1,53 @@
-empty
+export async function onRequest(context) {
+  const { request, params } = context;
+  const url = new URL(request.url);
+
+  // Reconstruct path to target Todoist API
+  const path = params.catchall ? params.catchall.join("/") : "";
+  const targetUrl = `https://api.todoist.com/api/v1/${path}${url.search}`;
+
+  // Handle browser CORS preflight
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type",
+      },
+    });
+  }
+
+  // Forward request with auth headers
+  const authHeader = request.headers.get("Authorization");
+  const headers = new Headers();
+  if (authHeader) headers.set("Authorization", authHeader);
+  headers.set("Content-Type", "application/json");
+
+  const forwardOptions = {
+    method: request.method,
+    headers: headers,
+  };
+
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    forwardOptions.body = await request.text();
+  }
+
+  try {
+    const response = await fetch(targetUrl, forwardOptions);
+    const responseBody = await response.text();
+
+    const responseHeaders = new Headers(response.headers);
+    responseHeaders.set("Access-Control-Allow-Origin": "*");
+
+    return new Response(responseBody, {
+      status: response.status,
+      headers: responseHeaders,
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+    });
+  }
+}
