@@ -6,21 +6,56 @@
   <title>Geminoist | API Key Guide</title>
   <style>
     :root {
-      --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --text: #f8fafc;
-      --text-muted: #94a3b8; --border: #334155; --danger: #ef4444; --warning: #eab308;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --accent: #38bdf8;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --danger: #ef4444;
+      --warning: #eab308;
+      --success: #22c55e;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: system-ui, -apple-system, sans-serif;
-      background: var(--bg); color: var(--text);
-      display: flex; justify-content: center; padding: 1.5rem; min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem;
+      min-height: 100vh;
     }
-    .container { width: 100%; max-width: 650px; display: flex; flex-direction: column; gap: 1.5rem; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
+    .container {
+      width: 100%;
+      max-width: 650px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
     h1 { font-size: 1.5rem; color: var(--accent); margin-bottom: 0.5rem; }
-    h2 { font-size: 1.1rem; color: var(--text); margin-top: 1.2rem; margin-bottom: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+    h2 {
+      font-size: 1.1rem;
+      color: var(--text);
+      margin-top: 1.2rem;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.3rem;
+    }
     p, li { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
-    ol { margin-left: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+    ol {
+      margin-left: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
     .notice-box {
       background: rgba(234, 179, 8, 0.15);
       border: 1px solid var(--warning);
@@ -29,14 +64,74 @@
       border-radius: 8px;
       font-size: 0.9rem;
       font-weight: 500;
+      margin-top: 1rem;
       margin-bottom: 1rem;
     }
-    button.secondary {
-      background: transparent; color: var(--text-muted); border: 1px solid var(--border);
-      font-weight: 700; font-size: 0.9rem; padding: 0.65rem 1.2rem; border-radius: 8px;
-      cursor: pointer; width: 100%; margin-top: 1.5rem;
+    .ai-help-section {
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
     }
-    code { background: #0b1120; padding: 0.15rem 0.4rem; border-radius: 4px; color: var(--accent); font-size: 0.85rem; }
+    .button-group {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+    }
+    .ai-help-btn {
+      background: #0b1120;
+      color: var(--accent);
+      border: 1px solid var(--border);
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .ai-help-btn:hover {
+      background: #334155;
+      border-color: var(--accent);
+    }
+    .copy-toast {
+      display: none;
+      font-size: 0.85rem;
+      color: var(--success);
+      margin-top: 0.75rem;
+      font-weight: 600;
+    }
+    button.secondary {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 0.65rem 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 1.5rem;
+    }
+    button.secondary:hover {
+      background: #334155;
+      color: var(--text);
+    }
+    code {
+      background: #0b1120;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      color: var(--accent);
+      font-size: 0.85rem;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -45,35 +140,88 @@
       <h1>API Key Setup Guide</h1>
       <p>Follow these step-by-step instructions from A to Z to retrieve your credentials.</p>
 
-      <!-- Explicit Notice -->
-      <div class="notice-box" style="margin-top: 1rem;">
+      <div class="notice-box">
         ⚠️ <strong>Important Notice:</strong> This application utilizes a <strong>Gemini-only configuration</strong>. It explicitly relies on Google's Gemini models for visual proof auditing and does not support or integrate with alternative LLM providers.
       </div>
 
-      <!-- Section 1: Gemini AI Studio -->
       <h2>1. How to Get Your Gemini API Key (Google AI Studio)</h2>
       <ol>
-        <li>Open your browser and navigate to <a href="https://aistudio.google.com" target="_blank" style="color: var(--accent);">Google AI Studio</a>.</li>
-        <li>Sign in using your preferred Google account. (If prompted, review and accept the terms of service).</li>
-        <li>Once loaded into the dashboard, look at the left-hand navigation menu or toolbar.</li>
-        <li>Click on the option labeled <strong>Get API key</strong> (or visit <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--accent);">AI Studio API Keys</a> directly).</li>
-        <li>Click the button to **Create API key**. Choose whether to tie it to an existing Google Cloud project or create a default new one.</li>
-        <li>Instantly copy the generated key string (it starts with `AIzaSy...`) and paste it safely into your Geminoist settings.</li>
+        <li>Open your browser and navigate to <a href="https://aistudio.google.com" target="_blank">Google AI Studio</a>.</li>
+        <li>Sign in using your Google account. Review and accept the terms of service if prompted.</li>
+        <li>Look at the left-hand navigation menu or toolbar.</li>
+        <li>Click on <strong>Get API key</strong> (or navigate directly to <a href="https://aistudio.google.com/app/apikey" target="_blank">AI Studio API Keys</a>).</li>
+        <li>Click **Create API key**. Choose to associate it with an existing project or create a default new one.</li>
+        <li>Copy the generated key string (starts with <code>AIzaSy...</code>) and paste it into Geminoist.</li>
       </ol>
 
-      <!-- Section 2: Todoist Token -->
       <h2>2. How to Get Your Todoist API Token</h2>
       <ol>
-        <li>Go to <a href="https://todoist.com" target="_blank" style="color: var(--accent);">Todoist</a> and log into your account.</li>
-        <li>Click on your **Profile Avatar** located in the top-left or top-right corner of the web interface.</li>
-        <li>Select **Settings** from the drop-down menu.</li>
-        <li>In the Settings modal/sidebar, click on the **Integrations** tab.</li>
-        <li>Navigate across the top sub-tabs to select **Developer**.</li>
-        <li>Locate your **API token** and click the **Copy** button to save it to your clipboard for use in Geminoist.</li>
+        <li>Go to <a href="https://todoist.com" target="_blank">Todoist</a> and log into your account.</li>
+        <li>Click on your <strong>Profile Avatar</strong> in the corner of the web interface.</li>
+        <li>Select <strong>Settings</strong> from the menu.</li>
+        <li>In the Settings menu, click on the <strong>Integrations</strong> tab.</li>
+        <li>Click on the <strong>Developer</strong> sub-tab.</li>
+        <li>Find your <strong>API token</strong> and click <strong>Copy</strong>.</li>
       </ol>
+
+      <div class="ai-help-section">
+        <h2 style="border-bottom: none; margin-top: 0; padding-bottom: 0;">Need help? Ask your AI</h2>
+        <p>Copy a pre-written prompt to paste into any LLM for interactive troubleshooting and guidance.</p>
+        
+        <div class="button-group">
+          <button class="ai-help-btn" onclick="copyAiPrompt('gemini')">
+            📋 Copy Gemini API Prompt
+          </button>
+          <button class="ai-help-btn" onclick="copyAiPrompt('todoist')">
+            📋 Copy Todoist API Prompt
+          </button>
+        </div>
+
+        <div id="copy-toast" class="copy-toast"></div>
+      </div>
 
       <button class="secondary" onclick="window.location.href='index.html'">← Back to Dashboard</button>
     </div>
   </div>
+
+  <script>
+    const AI_PROMPTS = {
+      gemini: `I am setting up an application called Geminoist that requires a Google Gemini API key. Please give me clear, step-by-step instructions on how to obtain a free Gemini API key from Google AI Studio. Cover:
+1. Which exact URL to visit.
+2. How to sign in and locate the "Get API key" section.
+3. How to create and copy the API key (which starts with "AIzaSy...").
+Keep the guidance direct and beginner-friendly.`,
+
+      todoist: `I am setting up an application called Geminoist that integrates with Todoist. Please provide clear, step-by-step instructions on how to find my personal Todoist Developer API Token. Cover:
+1. Navigating to Settings via the profile avatar in the web app.
+2. Finding the Integrations > Developer section.
+3. Locating and copying the API token.
+Keep the explanation clear and easy to follow.`
+    };
+
+    async function copyAiPrompt(type) {
+      const text = AI_PROMPTS[type];
+      const toast = document.getElementById("copy-toast");
+      const label = type === "gemini" ? "Gemini" : "Todoist";
+
+      try {
+        await navigator.clipboard.writeText(text);
+        toast.innerText = `Copied ${label} prompt to clipboard! Paste it into your AI assistant.`;
+        toast.style.display = "block";
+        setTimeout(() => { toast.style.display = "none"; }, 3500);
+      } catch (err) {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+
+        toast.innerText = `Copied ${label} prompt to clipboard! Paste it into your AI assistant.`;
+        toast.style.display = "block";
+        setTimeout(() => { toast.style.display = "none"; }, 3500);
+      }
+    }
+  </script>
 </body>
 </html>
