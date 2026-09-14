@@ -13,7 +13,13 @@ const statusDiv = document.getElementById("status-indicator");
 const tasksSection = document.getElementById("tasks-section");
 const tasksContainer = document.getElementById("tasks-container");
 
-// Modal Elements
+// Task Creation Elements
+const createModal = document.getElementById("create-modal");
+const newTaskContentInput = document.getElementById("new-task-content");
+const newTaskDescInput = document.getElementById("new-task-desc");
+const createTaskBtn = document.getElementById("create-task-btn");
+
+// Verification Modal Elements
 const proofModal = document.getElementById("proof-modal");
 const modalTaskTitle = document.getElementById("modal-task-title");
 const modalTaskDesc = document.getElementById("modal-task-desc");
@@ -22,6 +28,7 @@ const fileLabel = document.getElementById("file-label");
 const imagePreview = document.getElementById("image-preview");
 const submitVerifyBtn = document.getElementById("submit-verify-btn");
 const feedbackBox = document.getElementById("feedback-box");
+const proofExplanationInput = document.getElementById("proof-explanation");
 
 // Active Verification State
 let activeTaskId = null;
@@ -47,7 +54,6 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// Save credentials
 window.handleSaveKeys = function() {
   const gemini = geminiInput.value.trim();
   const todoist = todoistInput.value.trim();
@@ -66,7 +72,6 @@ window.handleSaveKeys = function() {
   fetchFocusTasks();
 };
 
-// Clear credentials
 window.handleClearKeys = function() {
   if (confirm("Are you sure you want to clear your saved keys?")) {
     localStorage.removeItem(GEMINI_KEY_NAME);
@@ -80,7 +85,6 @@ window.handleClearKeys = function() {
   }
 };
 
-// Fetch focus tasks directly from Todoist
 window.fetchFocusTasks = async function() {
   const token = localStorage.getItem(TODOIST_KEY_NAME);
   if (!token) return;
@@ -107,7 +111,6 @@ window.fetchFocusTasks = async function() {
   }
 };
 
-// Render tasks into the list
 function renderTasks(tasks) {
   if (!tasks || tasks.length === 0) {
     tasksContainer.innerHTML = "<p style='color: var(--success); font-weight: 500;'>No active focus tasks! You are free.</p>";
@@ -139,6 +142,85 @@ function renderTasks(tasks) {
   });
 }
 
+window.openCreateModal = function() {
+  newTaskContentInput.value = "";
+  newTaskDescInput.value = "";
+  createTaskBtn.disabled = false;
+  createTaskBtn.innerText = "Create Task";
+  createModal.style.display = "flex";
+};
+
+window.closeCreateModal = function() {
+  createModal.style.display = "none";
+};
+
+window.handleCreateTask = async function() {
+  const token = localStorage.getItem(TODOIST_KEY_NAME);
+  const content = document.getElementById("new-task-content").value.trim();
+  const description = document.getElementById("new-task-desc").value.trim();
+  const dueString = document.getElementById("new-task-due").value.trim();
+  const priority = parseInt(document.getElementById("new-task-priority").value, 10);
+  const extraLabelsRaw = document.getElementById("new-task-extra-labels").value.trim();
+
+  if (!token) {
+    alert("Todoist API token is missing.");
+    return;
+  }
+
+  if (!content) {
+    alert("Task name is required.");
+    return;
+  }
+
+  const labels = [FOCUS_LABEL];
+  if (extraLabelsRaw) {
+    extraLabelsRaw.split(",").forEach(tag => {
+      const cleaned = tag.trim().replace(/^@/, "");
+      if (cleaned && !labels.includes(cleaned)) {
+        labels.push(cleaned);
+      }
+    });
+  }
+
+  const payload = {
+    content: content,
+    description: description,
+    labels: labels,
+    priority: priority
+  };
+
+  if (dueString) {
+    payload.due_string = dueString;
+  }
+
+  createTaskBtn.disabled = true;
+  createTaskBtn.innerText = "Adding to Todoist...";
+
+  try {
+    const response = await fetch("https://api.todoist.com/api/v1/tasks", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || `Todoist returned ${response.status}`);
+    }
+
+    closeCreateModal();
+    fetchFocusTasks();
+  } catch (error) {
+    alert(`Failed to create task: ${error.message}`);
+  } finally {
+    createTaskBtn.disabled = false;
+    createTaskBtn.innerText = "Create Task";
+  }
+};
+
 function escapeHtml(str) {
   return str.replace(/[&<>"']/g, m => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
@@ -149,7 +231,6 @@ function escapeAttr(str) {
   return str.replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ");
 }
 
-// Modal controls
 window.selectTaskForVerification = function(taskId, taskContent, taskDescription) {
   activeTaskId = taskId;
   activeTaskContent = taskContent;
@@ -158,8 +239,9 @@ window.selectTaskForVerification = function(taskId, taskContent, taskDescription
   modalTaskTitle.innerText = `Verify: ${taskContent}`;
   modalTaskDesc.innerText = taskDescription 
     ? `Criteria: ${taskDescription}`
-    : "Upload a photo or screenshot proving you completed this task.";
+    : "Upload a photo proving you completed this task.";
 
+  proofExplanationInput.value = "";
   feedbackBox.style.display = "none";
   feedbackBox.innerText = "";
   imagePreview.style.display = "none";
@@ -179,7 +261,6 @@ window.closeProofModal = function() {
   activeTaskDescription = "";
 };
 
-// Handle file input and convert to Base64
 window.handleFileSelected = function(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -201,7 +282,6 @@ window.handleFileSelected = function(event) {
   reader.readAsDataURL(file);
 };
 
-// Send image proof and detailed criteria to Gemini 3.1 Flash-Lite
 window.submitProofToGemini = async function() {
   const geminiKey = localStorage.getItem(GEMINI_KEY_NAME);
   const todoistToken = localStorage.getItem(TODOIST_KEY_NAME);
@@ -217,28 +297,48 @@ window.submitProofToGemini = async function() {
   }
 
   submitVerifyBtn.disabled = true;
-  submitVerifyBtn.innerText = "Analyzing proof with Gemini...";
+  submitVerifyBtn.innerText = "Auditing proof...";
   feedbackBox.style.display = "block";
   feedbackBox.className = "feedback-box";
-  feedbackBox.innerText = "Evaluating evidence against task criteria...";
+  feedbackBox.innerText = "Subjecting proof to rigorous AI audit...";
 
-  const criteriaText = activeTaskDescription 
-    ? `\nMandatory Verification Criteria: "${activeTaskDescription}"`
-    : "";
+  // 1. Extract the instructions securely based on User's format limits
+  let criteriaText = "";
+  if (activeTaskDescription) {
+    // Check for <PC> ... </PC>
+    const pcMatch = activeTaskDescription.match(/<PC>:?([\s\S]*?)<\/PC>/i);
+    // Check for Proof criteria: ... ##
+    const textMatch = activeTaskDescription.match(/Proof criteria[:;]\s*([\s\S]*?)(?:##|$)/i);
+    
+    if (pcMatch) {
+      criteriaText = pcMatch[1].trim();
+    } else if (textMatch) {
+      criteriaText = textMatch[1].trim();
+    } else {
+      criteriaText = activeTaskDescription.trim();
+    }
+  }
 
-  const systemPrompt = `You are a strict, objective task verification auditor.
-The user claims to have completed the following task: "${activeTaskContent}".${criteriaText}
+  const userExplanation = proofExplanationInput.value.trim();
+  const promptCriteria = criteriaText ? `\nStrict Verification Criteria:\n"${criteriaText}"` : "";
+  const promptExplanation = userExplanation ? `\nUser's Context/Explanation:\n"${userExplanation}"` : "";
+
+  // 2. Updated Zero-Tolerance System Prompt
+  const systemPrompt = `You are an extremely harsh, zero-tolerance task verification auditor. Proof must be absolutely proving.
+The user claims to have completed the following task: "${activeTaskContent}".${promptCriteria}${promptExplanation}
 
 Instructions:
-1. Examine the provided image thoroughly.
-2. If mandatory verification criteria are provided above, the image MUST clearly fulfill them.
-3. If no specific criteria are provided, evaluate whether the image represents authentic, definitive proof that the task was finished.
-4. Strictly reject ambiguous, unrelated, duplicate, or low-effort submissions.
+1. Examine the provided image (and user's explanation, if any) with extreme scrutiny. No benefit of the doubt.
+2. If strict verification criteria are provided, they MUST be flawlessly fulfilled.
+3. Classify the proof into exactly one of these statuses:
+   - "Approved": The proof flawlessly and undeniably proves the task is complete.
+   - "Not-enough": The proof is related but incomplete, ambiguous, or needs further textual explanation or a clearer photo.
+   - "Inadmissible": The proof is completely irrelevant, obvious cheating, fake, or totally invalid.
 
 Respond EXCLUSIVELY with a JSON object following this exact schema:
 {
-  "is_verified": true | false,
-  "reasoning": "A concise 1-2 sentence explanation of why this proof was accepted or rejected."
+  "status": "Approved" | "Not-enough" | "Inadmissible",
+  "reasoning": "Harsh, direct explanation of the verdict (1-2 sentences)."
 }`;
 
   try {
@@ -279,7 +379,8 @@ Respond EXCLUSIVELY with a JSON object following this exact schema:
     const rawResultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     const result = JSON.parse(rawResultText);
 
-    if (result.is_verified === true) {
+    // 3. Handle Strict 3-Tier Ranking
+    if (result.status === "Approved") {
       feedbackBox.className = "feedback-box success";
       feedbackBox.innerText = `Verified! ${result.reasoning} Completing task in Todoist...`;
 
@@ -290,12 +391,20 @@ Respond EXCLUSIVELY with a JSON object following this exact schema:
         closeProofModal();
         fetchFocusTasks();
       }, 2000);
+
+    } else if (result.status === "Not-enough") {
+      feedbackBox.className = "feedback-box warning";
+      feedbackBox.innerText = `Not Enough: ${result.reasoning} \n\nPlease add a text explanation below or upload a better photo.`;
+      submitVerifyBtn.disabled = false;
+      submitVerifyBtn.innerText = "Try Again";
+
     } else {
       feedbackBox.className = "feedback-box error";
-      feedbackBox.innerText = `Rejected: ${result.reasoning}`;
+      feedbackBox.innerText = `Inadmissible: ${result.reasoning}`;
       submitVerifyBtn.disabled = false;
-      submitVerifyBtn.innerText = "Try Again With New Photo";
+      submitVerifyBtn.innerText = "Try Again With Valid Proof";
     }
+
   } catch (error) {
     feedbackBox.className = "feedback-box error";
     feedbackBox.innerText = `Verification failed: ${error.message}`;
@@ -304,7 +413,6 @@ Respond EXCLUSIVELY with a JSON object following this exact schema:
   }
 };
 
-// Complete task in Todoist API
 async function completeTodoistTask(taskId, token) {
   const response = await fetch(`https://api.todoist.com/api/v1/tasks/${taskId}/close`, {
     method: "POST",
