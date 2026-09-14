@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Geminoist | API Key Guide</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --text: #f8fafc;
+      --text-muted: #94a3b8; --border: #334155; --danger: #ef4444; --warning: #eab308;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text);
+      display: flex; justify-content: center; padding: 1.5rem; min-height: 100vh;
+    }
+    .container { width: 100%; max-width: 650px; display: flex; flex-direction: column; gap: 1.5rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
+    h1 { font-size: 1.5rem; color: var(--accent); margin-bottom: 0.5rem; }
+    h2 { font-size: 1.1rem; color: var(--text); margin-top: 1.2rem; margin-bottom: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+    p, li { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+    ol { margin-left: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+    .notice-box {
+      background: rgba(234, 179, 8, 0.15);
+      border: 1px solid var(--warning);
+      color: var(--text);
+      padding: 0.85rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+    button.secondary {
+      background: transparent; color: var(--text-muted); border: 1px solid var(--border);
+      font-weight: 700; font-size: 0.9rem; padding: 0.65rem 1.2rem; border-radius: 8px;
+      cursor: pointer; width: 100%; margin-top: 1.5rem;
+    }
+    code { background: #0b1120; padding: 0.15rem 0.4rem; border-radius: 4px; color: var(--accent); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>API Key Setup Guide</h1>
+      <p>Follow these step-by-step instructions from A to Z to retrieve your credentials.</p>
+
+      <!-- Explicit Notice -->
+      <div class="notice-box" style="margin-top: 1rem;">
+        ⚠️ <strong>Important Notice:</strong> This application utilizes a <strong>Gemini-only configuration</strong>. It explicitly relies on Google's Gemini models for visual proof auditing and does not support or integrate with alternative LLM providers.
+      </div>
+
+      <!-- Section 1: Gemini AI Studio -->
+      <h2>1. How to Get Your Gemini API Key (Google AI Studio)</h2>
+      <ol>
+        <li>Open your browser and navigate to <a href="https://aistudio.google.com" target="_blank" style="color: var(--accent);">Google AI Studio</a>.</li>
+        <li>Sign in using your preferred Google account. (If prompted, review and accept the terms of service).</li>
+        <li>Once loaded into the dashboard, look at the left-hand navigation menu or toolbar.</li>
+        <li>Click on the option labeled <strong>Get API key</strong> (or visit <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--accent);">AI Studio API Keys</a> directly).</li>
+        <li>Click the button to **Create API key**. Choose whether to tie it to an existing Google Cloud project or create a default new one.</li>
+        <li>Instantly copy the generated key string (it starts with `AIzaSy...`) and paste it safely into your Geminoist settings.</li>
+      </ol>
+
+      <!-- Section 2: Todoist Token -->
+      <h2>2. How to Get Your Todoist API Token</h2>
+      <ol>
+        <li>Go to <a href="https://todoist.com" target="_blank" style="color: var(--accent);">Todoist</a> and log into your account.</li>
+        <li>Click on your **Profile Avatar** located in the top-left or top-right corner of the web interface.</li>
+        <li>Select **Settings** from the drop-down menu.</li>
+        <li>In the Settings modal/sidebar, click on the **Integrations** tab.</li>
+        <li>Navigate across the top sub-tabs to select **Developer**.</li>
+        <li>Locate your **API token** and click the **Copy** button to save it to your clipboard for use in Geminoist.</li>
+      </ol>
+
+      <button class="secondary" onclick="window.location.href='index.html'">← Back to Dashboard</button>
+    </div>
+  </div>
+</body>
+</html>
