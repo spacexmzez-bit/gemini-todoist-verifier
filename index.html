@@ -172,6 +172,7 @@
       font-size: 0.85rem;
       display: none;
       line-height: 1.4;
+      white-space: pre-wrap;
     }
     .feedback-box.success { background: rgba(34, 197, 94, 0.15); border: 1px solid var(--success); color: var(--text); }
     .feedback-box.warning { background: rgba(234, 179, 8, 0.15); border: 1px solid var(--warning); color: var(--text); }
@@ -181,8 +182,13 @@
 <body>
   <div class="container">
     <div class="card">
-      <h1>Geminoist</h1>
-      <p>AI-audited task completion powered by Gemini & Todoist.</p>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <h1>Geminoist</h1>
+          <p>AI-audited task completion powered by Gemini & Todoist.</p>
+        </div>
+        <a href="guide.html" style="color: var(--accent); font-size: 0.85rem; text-decoration: none; font-weight: 600; padding: 0.35rem 0.75rem; background: rgba(56, 189, 248, 0.1); border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.25); white-space: nowrap;">📖 Setup Guide</a>
+      </div>
     </div>
 
     <!-- Active Tasks Dashboard -->
@@ -201,8 +207,11 @@
 
     <!-- API Key Setup -->
     <div class="card" id="key-section">
-      <h2>API Key Setup (Saved Locally)</h2>
-      <p>Keys are stored exclusively in your browser's local memory.</p>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+        <h2 style="margin-bottom: 0;">API Key Setup (Saved Locally)</h2>
+        <a href="guide.html" style="color: var(--accent); font-size: 0.85rem; text-decoration: none; font-weight: 600;">Need keys?</a>
+      </div>
+      <p>Keys are stored exclusively in your browser's local memory and sent directly to Google and Todoist.</p>
       
       <label for="gemini-key">Gemini API Key</label>
       <input type="password" id="gemini-key" placeholder="AIzaSy..." />
