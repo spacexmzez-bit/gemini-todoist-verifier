@@ -1,6 +1,7 @@
 // Local Storage Keys
 const GEMINI_KEY_NAME = "focus_gemini_key";
 const TODOIST_KEY_NAME = "focus_todoist_token";
+const LOCKOUT_KEY_NAME = "gemini_lockout_date";
 
 // Focus tag name
 const FOCUS_LABEL = "_!!focus";
@@ -37,7 +38,7 @@ let activeTaskDescription = "";
 let selectedBase64Image = null;
 let selectedMimeType = "";
 
-// Load credentials automatically
+// Auto-load credentials on startup
 window.addEventListener("DOMContentLoaded", () => {
   const savedGemini = localStorage.getItem(GEMINI_KEY_NAME);
   const savedTodoist = localStorage.getItem(TODOIST_KEY_NAME);
@@ -54,6 +55,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+// Save credentials
 window.handleSaveKeys = function() {
   const gemini = geminiInput.value.trim();
   const todoist = todoistInput.value.trim();
@@ -72,10 +74,12 @@ window.handleSaveKeys = function() {
   fetchFocusTasks();
 };
 
+// Clear credentials
 window.handleClearKeys = function() {
   if (confirm("Are you sure you want to clear your saved keys?")) {
     localStorage.removeItem(GEMINI_KEY_NAME);
     localStorage.removeItem(TODOIST_KEY_NAME);
+    localStorage.removeItem(LOCKOUT_KEY_NAME);
     geminiInput.value = "";
     todoistInput.value = "";
     clearBtn.style.display = "none";
@@ -85,6 +89,7 @@ window.handleClearKeys = function() {
   }
 };
 
+// Fetch focus tasks directly from Todoist
 window.fetchFocusTasks = async function() {
   const token = localStorage.getItem(TODOIST_KEY_NAME);
   if (!token) return;
@@ -111,6 +116,7 @@ window.fetchFocusTasks = async function() {
   }
 };
 
+// Render tasks into the list
 function renderTasks(tasks) {
   if (!tasks || tasks.length === 0) {
     tasksContainer.innerHTML = "<p style='color: var(--success); font-weight: 500;'>No active focus tasks! You are free.</p>";
@@ -142,6 +148,7 @@ function renderTasks(tasks) {
   });
 }
 
+// Modal controls: Task Creation
 window.openCreateModal = function() {
   newTaskContentInput.value = "";
   newTaskDescInput.value = "";
@@ -154,6 +161,7 @@ window.closeCreateModal = function() {
   createModal.style.display = "none";
 };
 
+// Create a new task directly in Todoist (Zero Gemini Tokens)
 window.handleCreateTask = async function() {
   const token = localStorage.getItem(TODOIST_KEY_NAME);
   const content = document.getElementById("new-task-content").value.trim();
@@ -231,6 +239,7 @@ function escapeAttr(str) {
   return str.replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ");
 }
 
+// Modal controls: Proof Verification
 window.selectTaskForVerification = function(taskId, taskContent, taskDescription) {
   activeTaskId = taskId;
   activeTaskContent = taskContent;
@@ -261,6 +270,7 @@ window.closeProofModal = function() {
   activeTaskDescription = "";
 };
 
+// Handle file upload and Base64 conversion
 window.handleFileSelected = function(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -282,6 +292,66 @@ window.handleFileSelected = function(event) {
   reader.readAsDataURL(file);
 };
 
+// Model Fallback Engine: gemini-3.5-flash-lite -> gemini-3.1-flash-lite
+async function callGeminiWithFallback(geminiKey, requestBody) {
+  const models = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
+  const todayStr = new Date().toDateString();
+  const lockoutDate = localStorage.getItem(LOCKOUT_KEY_NAME);
+
+  if (lockoutDate === todayStr) {
+    throw new Error("You have reached your daily quota limit across all models. Please wait until 00:00 for the reset.");
+  }
+
+  let lastError = null;
+
+  for (let i = 0; i < models.length; i++) {
+    const modelName = models[i];
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (response.status === 429) {
+        console.warn(`[Quota] Model ${modelName} exceeded rate limits (429).`);
+        continue;
+      }
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const message = errData.error?.message || `HTTP ${response.status}`;
+        
+        if (message.includes("RESOURCE_EXHAUSTED") || message.includes("Quota exceeded") || response.status === 429) {
+          console.warn(`[Quota] Model ${modelName} exhausted: ${message}`);
+          continue;
+        }
+
+        throw new Error(message);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      lastError = err;
+      const isQuotaErr = err.message.includes("RESOURCE_EXHAUSTED") || 
+                         err.message.includes("Quota exceeded") || 
+                         err.message.includes("429");
+
+      if (!isQuotaErr) {
+        throw err;
+      }
+    }
+  }
+
+  // If all models in the fallback array failed due to quota exhaustion
+  localStorage.setItem(LOCKOUT_KEY_NAME, todayStr);
+  throw new Error("You have reached your daily quota limit across all models. Please wait until 00:00 for the reset.");
+}
+
+// Send image proof and criteria to Gemini
 window.submitProofToGemini = async function() {
   const geminiKey = localStorage.getItem(GEMINI_KEY_NAME);
   const todoistToken = localStorage.getItem(TODOIST_KEY_NAME);
@@ -302,14 +372,12 @@ window.submitProofToGemini = async function() {
   feedbackBox.className = "feedback-box";
   feedbackBox.innerText = "Subjecting proof to rigorous AI audit...";
 
-  // 1. Extract the instructions securely based on User's format limits
+  // Regex parser for <PC>...</PC> or Proof criteria: ... ##
   let criteriaText = "";
   if (activeTaskDescription) {
-    // Check for <PC> ... </PC>
     const pcMatch = activeTaskDescription.match(/<PC>:?([\s\S]*?)<\/PC>/i);
-    // Check for Proof criteria: ... ##
     const textMatch = activeTaskDescription.match(/Proof criteria[:;]\s*([\s\S]*?)(?:##|$)/i);
-    
+
     if (pcMatch) {
       criteriaText = pcMatch[1].trim();
     } else if (textMatch) {
@@ -323,16 +391,15 @@ window.submitProofToGemini = async function() {
   const promptCriteria = criteriaText ? `\nStrict Verification Criteria:\n"${criteriaText}"` : "";
   const promptExplanation = userExplanation ? `\nUser's Context/Explanation:\n"${userExplanation}"` : "";
 
-  // 2. Updated Zero-Tolerance System Prompt
   const systemPrompt = `You are an extremely harsh, zero-tolerance task verification auditor. Proof must be absolutely proving.
 The user claims to have completed the following task: "${activeTaskContent}".${promptCriteria}${promptExplanation}
 
 Instructions:
-1. Examine the provided image (and user's explanation, if any) with extreme scrutiny. No benefit of the doubt.
+1. Examine the provided image (and user's explanation, if any) with extreme scrutiny. Give zero benefit of the doubt.
 2. If strict verification criteria are provided, they MUST be flawlessly fulfilled.
 3. Classify the proof into exactly one of these statuses:
    - "Approved": The proof flawlessly and undeniably proves the task is complete.
-   - "Not-enough": The proof is related but incomplete, ambiguous, or needs further textual explanation or a clearer photo.
+   - "Not-enough": The proof is related but incomplete, ambiguous, or requires additional textual explanation or a clearer photo.
    - "Inadmissible": The proof is completely irrelevant, obvious cheating, fake, or totally invalid.
 
 Respond EXCLUSIVELY with a JSON object following this exact schema:
@@ -342,8 +409,6 @@ Respond EXCLUSIVELY with a JSON object following this exact schema:
 }`;
 
   try {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${geminiKey}`;
-
     const requestBody = {
       contents: [
         {
@@ -364,22 +429,10 @@ Respond EXCLUSIVELY with a JSON object following this exact schema:
       }
     };
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error?.message || `Gemini error ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await callGeminiWithFallback(geminiKey, requestBody);
     const rawResultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     const result = JSON.parse(rawResultText);
 
-    // 3. Handle Strict 3-Tier Ranking
     if (result.status === "Approved") {
       feedbackBox.className = "feedback-box success";
       feedbackBox.innerText = `Verified! ${result.reasoning} Completing task in Todoist...`;
@@ -394,7 +447,7 @@ Respond EXCLUSIVELY with a JSON object following this exact schema:
 
     } else if (result.status === "Not-enough") {
       feedbackBox.className = "feedback-box warning";
-      feedbackBox.innerText = `Not Enough: ${result.reasoning} \n\nPlease add a text explanation below or upload a better photo.`;
+      feedbackBox.innerText = `Not Enough: ${result.reasoning}\n\nPlease add an explanation in the text field or upload clearer proof.`;
       submitVerifyBtn.disabled = false;
       submitVerifyBtn.innerText = "Try Again";
 
@@ -413,6 +466,7 @@ Respond EXCLUSIVELY with a JSON object following this exact schema:
   }
 };
 
+// Complete task via Todoist Sync API
 async function completeTodoistTask(taskId, token) {
   const response = await fetch(`https://api.todoist.com/api/v1/tasks/${taskId}/close`, {
     method: "POST",
