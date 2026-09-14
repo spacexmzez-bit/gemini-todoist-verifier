@@ -16,6 +16,7 @@ const tasksContainer = document.getElementById("tasks-container");
 // Modal Elements
 const proofModal = document.getElementById("proof-modal");
 const modalTaskTitle = document.getElementById("modal-task-title");
+const modalTaskDesc = document.getElementById("modal-task-desc");
 const proofFileInput = document.getElementById("proof-file-input");
 const fileLabel = document.getElementById("file-label");
 const imagePreview = document.getElementById("image-preview");
@@ -25,6 +26,7 @@ const feedbackBox = document.getElementById("feedback-box");
 // Active Verification State
 let activeTaskId = null;
 let activeTaskContent = "";
+let activeTaskDescription = "";
 let selectedBase64Image = null;
 let selectedMimeType = "";
 
@@ -116,15 +118,20 @@ function renderTasks(tasks) {
   tasks.forEach(task => {
     const item = document.createElement("div");
     item.className = "task-item";
-    
-    // Escape content for attribute usage
-    const safeContent = task.content.replace(/'/g, "\\'");
+
+    const descHtml = task.description 
+      ? `<div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">${escapeHtml(task.description)}</div>`
+      : "";
+
     item.innerHTML = `
-      <div>
-        <span class="task-content">${task.content}</span>
-        <span class="task-badge">@${FOCUS_LABEL}</span>
+      <div style="flex: 1;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+          <span class="task-content">${escapeHtml(task.content)}</span>
+          <span class="task-badge">@${FOCUS_LABEL}</span>
+        </div>
+        ${descHtml}
       </div>
-      <button style="width: auto; margin-top: 0; padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="selectTaskForVerification('${task.id}', '${safeContent}')">
+      <button style="width: auto; margin-top: 0; padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="selectTaskForVerification('${task.id}', '${escapeAttr(task.content)}', '${escapeAttr(task.description || "")}')">
         Verify Proof
       </button>
     `;
@@ -132,11 +139,27 @@ function renderTasks(tasks) {
   });
 }
 
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, m => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+  })[m]);
+}
+
+function escapeAttr(str) {
+  return str.replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ");
+}
+
 // Modal controls
-window.selectTaskForVerification = function(taskId, taskContent) {
+window.selectTaskForVerification = function(taskId, taskContent, taskDescription) {
   activeTaskId = taskId;
   activeTaskContent = taskContent;
+  activeTaskDescription = taskDescription;
+
   modalTaskTitle.innerText = `Verify: ${taskContent}`;
+  modalTaskDesc.innerText = taskDescription 
+    ? `Criteria: ${taskDescription}`
+    : "Upload a photo or screenshot proving you completed this task.";
+
   feedbackBox.style.display = "none";
   feedbackBox.innerText = "";
   imagePreview.style.display = "none";
@@ -153,6 +176,7 @@ window.closeProofModal = function() {
   proofModal.style.display = "none";
   activeTaskId = null;
   activeTaskContent = "";
+  activeTaskDescription = "";
 };
 
 // Handle file input and convert to Base64
@@ -169,7 +193,6 @@ window.handleFileSelected = function(event) {
     imagePreview.style.display = "block";
     fileLabel.style.display = "none";
 
-    // Extract raw base64 string
     selectedBase64Image = dataUrl.split(",")[1];
     submitVerifyBtn.disabled = false;
     submitVerifyBtn.style.opacity = "1";
@@ -178,7 +201,7 @@ window.handleFileSelected = function(event) {
   reader.readAsDataURL(file);
 };
 
-// Send image proof to Gemini API
+// Send image proof and detailed criteria to Gemini API
 window.submitProofToGemini = async function() {
   const geminiKey = localStorage.getItem(GEMINI_KEY_NAME);
   const todoistToken = localStorage.getItem(TODOIST_KEY_NAME);
@@ -197,23 +220,30 @@ window.submitProofToGemini = async function() {
   submitVerifyBtn.innerText = "Analyzing proof with Gemini...";
   feedbackBox.style.display = "block";
   feedbackBox.className = "feedback-box";
-  feedbackBox.innerText = "Evaluating evidence against task requirements...";
+  feedbackBox.innerText = "Evaluating evidence against task criteria...";
+
+  const criteriaText = activeTaskDescription 
+    ? `\nMandatory Verification Criteria: "${activeTaskDescription}"`
+    : "";
 
   const systemPrompt = `You are a strict, objective task verification auditor.
-The user claims to have completed the following task: "${activeTaskContent}".
-Analyze the provided image carefully.
-Determine if this image constitutes genuine, convincing proof that the task was actually completed.
-Do not accept vague, unrelated, or low-effort submissions.
+The user claims to have completed the following task: "${activeTaskContent}".${criteriaText}
 
-Respond EXCLUSIVELY with a JSON object adhering to this schema:
+Instructions:
+1. Examine the provided image thoroughly.
+2. If mandatory verification criteria are provided above, the image MUST clearly fulfill them.
+3. If no specific criteria are provided, evaluate whether the image represents authentic, definitive proof that the task was finished.
+4. Strictly reject ambiguous, unrelated, duplicate, or low-effort submissions.
+
+Respond EXCLUSIVELY with a JSON object following this exact schema:
 {
   "is_verified": true | false,
-  "reasoning": "A concise explanation (1-2 sentences) of why this proof was accepted or rejected."
+  "reasoning": "A concise 1-2 sentence explanation of why this proof was accepted or rejected."
 }`;
 
   try {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
-    
+
     const requestBody = {
       contents: [
         {
@@ -253,7 +283,6 @@ Respond EXCLUSIVELY with a JSON object adhering to this schema:
       feedbackBox.className = "feedback-box success";
       feedbackBox.innerText = `Verified! ${result.reasoning} Completing task in Todoist...`;
 
-      // Mark completed in Todoist
       await completeTodoistTask(activeTaskId, todoistToken);
 
       feedbackBox.innerText = `Completed in Todoist! ${result.reasoning}`;
@@ -275,7 +304,7 @@ Respond EXCLUSIVELY with a JSON object adhering to this schema:
   }
 };
 
-// Close/Complete task in Todoist API
+// Complete task in Todoist API
 async function completeTodoistTask(taskId, token) {
   const response = await fetch(`https://api.todoist.com/api/v1/tasks/${taskId}/close`, {
     method: "POST",
