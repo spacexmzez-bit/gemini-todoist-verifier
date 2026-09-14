@@ -201,7 +201,7 @@ window.handleFileSelected = function(event) {
   reader.readAsDataURL(file);
 };
 
-// Send image proof and detailed criteria to Gemini API
+// Send image proof and detailed criteria to Gemini 3.1 Flash-Lite
 window.submitProofToGemini = async function() {
   const geminiKey = localStorage.getItem(GEMINI_KEY_NAME);
   const todoistToken = localStorage.getItem(TODOIST_KEY_NAME);
@@ -242,7 +242,7 @@ Respond EXCLUSIVELY with a JSON object following this exact schema:
 }`;
 
   try {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${geminiKey}`;
 
     const requestBody = {
       contents: [
